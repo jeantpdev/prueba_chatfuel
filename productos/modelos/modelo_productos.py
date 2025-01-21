@@ -8,7 +8,8 @@ class Formulario():
         try:
             datos = request.get_json()
             print(datos)
-            return jsonify({"mensaje": "Datos recibidos correctamente"}), 200
+            nombre = datos["nombre"]
+            return jsonify({"mensaje": "Datos recibidos correctamente", "nombre": nombre}), 200
 
             # return jsonify({"urls_imagenes_secundarias": urls_imagenes_secundarias, "url_imagen_principal": url_imagen_principal}), 200
         
