@@ -26,7 +26,7 @@ class Formulario():
             print(f"Error al obtener los datos: {e}")
             return None
 
-    def configurar_credenciales(self, SCOPES, CREDENTIALS_FILE):
+    def configurar_credenciales(self, SCOPES, CREDENTIALS_CONTENT):
         TOKEN_FILE = 'token.json'
         creds = None
         if os.path.exists(TOKEN_FILE):
@@ -35,7 +35,13 @@ class Formulario():
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_FILE, SCOPES)
+                # Cambia de from_client_secrets_file a from_client_config
+                from google.auth.transport.requests import Request
+                from google_auth_oauthlib.flow import InstalledAppFlow
+                import json
+
+                client_config = json.loads(CREDENTIALS_CONTENT)
+                flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
                 creds = flow.run_local_server(port=0)
             with open(TOKEN_FILE, 'w') as token:
                 token.write(creds.to_json())
