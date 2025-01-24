@@ -12,6 +12,8 @@ class Formulario():
         try:
             with open(credentials_file, 'r') as file:
                 credenciales = file.read()
+            if not credenciales:
+                print("El archivo de credenciales está vacío o no se pudo leer correctamente.")
             return credenciales
         except Exception as e:
             print(f"Error al leer el archivo de credenciales: {e}")
@@ -27,6 +29,10 @@ class Formulario():
             return None
 
     def configurar_credenciales(self, SCOPES, CREDENTIALS_CONTENT):
+        if CREDENTIALS_CONTENT is None:
+                print("El contenido de las credenciales es None. Verifica la ruta y el contenido del archivo.")
+                return None
+
         TOKEN_FILE = 'token.json'
         creds = None
         if os.path.exists(TOKEN_FILE):
@@ -35,12 +41,16 @@ class Formulario():
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                # Cambia de from_client_secrets_file a from_client_config
                 from google.auth.transport.requests import Request
                 from google_auth_oauthlib.flow import InstalledAppFlow
                 import json
 
-                client_config = json.loads(CREDENTIALS_CONTENT)
+                try:
+                    client_config = json.loads(CREDENTIALS_CONTENT)
+                except json.JSONDecodeError as e:
+                    print(f"Error al decodificar el JSON de las credenciales: {e}")
+                    return None
+
                 flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
                 creds = flow.run_local_server(port=0)
             with open(TOKEN_FILE, 'w') as token:
@@ -76,7 +86,7 @@ class Formulario():
         
         nombre = datos["nombre"]
         SCOPES = ['https://www.googleapis.com/auth/calendar']
-        CREDENTIALS_FILE_PATH = r'../etc/secrets/client_secrets'
+        CREDENTIALS_FILE_PATH = r'/etc/secrets/client_secrets'
         CREDENTIALS_FILE = self.leer_credenciales(CREDENTIALS_FILE_PATH)
         
         creds = self.configurar_credenciales(SCOPES, CREDENTIALS_FILE)
