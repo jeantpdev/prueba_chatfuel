@@ -70,7 +70,7 @@ class Formulario():
         
         nombre = datos["nombre"]
         SCOPES = ['https://www.googleapis.com/auth/calendar']
-        CREDENTIALS_FILE_PATH = r'/etc/secrets/client_secrets'
+        CREDENTIALS_FILE_PATH = r'../etc/secrets/client_secrets'
         CREDENTIALS_FILE = self.leer_credenciales(CREDENTIALS_FILE_PATH)
         
         creds = self.configurar_credenciales(SCOPES, CREDENTIALS_FILE)
