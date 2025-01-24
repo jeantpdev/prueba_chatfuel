@@ -68,19 +68,16 @@ class Formulario():
         if datos is None:
             return jsonify({"mensaje": "Error al obtener los datos"}), 500
         
-        return jsonify({"mensaje": "Datos recibidos correctamente"}), 200
-
-
-        # nombre = datos["nombre"]
-        # SCOPES = ['https://www.googleapis.com/auth/calendar']
-        # CREDENTIALS_FILE_PATH = r'C:\Users\jtrujillo\Desktop\Chatfuel\Google Keys\client_secret_591857227670-2h9lc2u68lp50khmd1k5n3ncevjfljq9.apps.googleusercontent.com.json'
-        # CREDENTIALS_FILE = self.leer_credenciales(CREDENTIALS_FILE_PATH)
+        nombre = datos["nombre"]
+        SCOPES = ['https://www.googleapis.com/auth/calendar']
+        CREDENTIALS_FILE_PATH = r'/etc/secrets/client_secrets'
+        CREDENTIALS_FILE = self.leer_credenciales(CREDENTIALS_FILE_PATH)
         
-        # creds = self.configurar_credenciales(SCOPES, CREDENTIALS_FILE)
-        # service = build('calendar', 'v3', credentials=creds)
+        creds = self.configurar_credenciales(SCOPES, CREDENTIALS_FILE)
+        service = build('calendar', 'v3', credentials=creds)
 
-        # evento_link = self.crear_evento(service, datos)
-        # if evento_link:
-        #     return jsonify({"mensaje": "Datos recibidos correctamente", "nombre": nombre, "evento": evento_link}), 200
-        # else:
-        #     return jsonify({"mensaje": "Datos recibidos correctamente, pero ocurrió un error al crear el evento", "nombre": nombre}), 200
+        evento_link = self.crear_evento(service, datos)
+        if evento_link:
+            return jsonify({"mensaje": "Datos recibidos correctamente", "nombre": nombre, "evento": evento_link}), 200
+        else:
+            return jsonify({"mensaje": "Datos recibidos correctamente, pero ocurrió un error al crear el evento", "nombre": nombre}), 200
