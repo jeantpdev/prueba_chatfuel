@@ -5,16 +5,21 @@ from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 import os.path
+from google.oauth2 import service_account
+import json
 
 class Formulario():  
 
     def leer_credenciales(self, credentials_file):
         try:
             with open(credentials_file, 'r') as file:
-                credenciales = file.read()
+                credenciales = json.load(file)  # Cambiar a json.load para leer JSON
             if not credenciales:
                 print("El archivo de credenciales está vacío o no se pudo leer correctamente.")
             return credenciales
+        except json.JSONDecodeError as e:
+            print(f"Error al decodificar el archivo JSON de credenciales: {e}")
+            return None
         except Exception as e:
             print(f"Error al leer el archivo de credenciales: {e}")
             return None
@@ -28,34 +33,20 @@ class Formulario():
             print(f"Error al obtener los datos: {e}")
             return None
 
-    def configurar_credenciales(self, SCOPES, CREDENTIALS_CONTENT):
-        if CREDENTIALS_CONTENT is None:
-                print("El contenido de las credenciales es None. Verifica la ruta y el contenido del archivo.")
+    def configurar_credenciales(self, SCOPES, CREDENTIALS_FILE_PATH):
+        try:
+            # Verificar si el archivo de credenciales existe
+            if not os.path.exists(CREDENTIALS_FILE_PATH):
+                print(f"El archivo de credenciales no se encuentra en la ruta: {CREDENTIALS_FILE_PATH}")
                 return None
 
-        TOKEN_FILE = 'token.json'
-        creds = None
-        if os.path.exists(TOKEN_FILE):
-            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                from google.auth.transport.requests import Request
-                from google_auth_oauthlib.flow import InstalledAppFlow
-                import json
-
-                try:
-                    client_config = json.loads(CREDENTIALS_CONTENT)
-                except json.JSONDecodeError as e:
-                    print(f"Error al decodificar el JSON de las credenciales: {e}")
-                    return None
-
-                flow = InstalledAppFlow.from_client_config(client_config, SCOPES)
-                creds = flow.run_local_server(port=0)
-            with open(TOKEN_FILE, 'w') as token:
-                token.write(creds.to_json())
-        return creds
+            # Cargar las credenciales de la cuenta de servicio desde el archivo JSON
+            creds = service_account.Credentials.from_service_account_file(
+                CREDENTIALS_FILE_PATH, scopes=SCOPES)
+            return creds
+        except Exception as e:
+            print(f"Error al configurar las credenciales de la cuenta de servicio: {e}")
+            return None
 
     def crear_evento(self, service, datos):
         evento = {
@@ -84,16 +75,31 @@ class Formulario():
         if datos is None:
             return jsonify({"mensaje": "Error al obtener los datos"}), 500
         
-        nombre = datos["nombre"]
-        SCOPES = ['https://www.googleapis.com/auth/calendar']
-        CREDENTIALS_FILE_PATH = r'/etc/secrets/client_secrets'
-        CREDENTIALS_FILE = self.leer_credenciales(CREDENTIALS_FILE_PATH)
+        print(datos["summary"])
         
-        creds = self.configurar_credenciales(SCOPES, CREDENTIALS_FILE)
+        # datos["summary"] = "Reunión de Proyecto"
+        # datos["location"] = "Oficina Central"
+        # datos["description"] = "Revisión del progreso del proyecto"
+        # datos["start_dateTime"] = "2025-01-21T16:55:00"
+        # datos["start_timeZone"] = "America/Los_Angeles"
+        # datos["end_dateTime"] = "2025-01-21T16:59:00"
+        # datos["end_timeZone"] = "America/Los_Angeles"
+        
+        # Verificar que todos los campos necesarios estén presentes
+        required_fields = ["summary", "location", "description", "start_dateTime", "start_timeZone", "end_dateTime", "end_timeZone"]
+        missing_fields = [field for field in required_fields if field not in datos]
+        
+        if missing_fields:
+            return jsonify({"mensaje": f"Faltan los siguientes campos: {', '.join(missing_fields)}"}), 400
+
+        SCOPES = ['https://www.googleapis.com/auth/calendar']
+        CREDENTIALS_FILE_PATH = '/etc/secrets/client_secrets_real'
+        
+        creds = self.configurar_credenciales(SCOPES, CREDENTIALS_FILE_PATH)
         service = build('calendar', 'v3', credentials=creds)
 
         evento_link = self.crear_evento(service, datos)
         if evento_link:
-            return jsonify({"mensaje": "Datos recibidos correctamente", "nombre": nombre, "evento": evento_link}), 200
+            return jsonify({"mensaje": "Datos recibidos correctamente", "nombre": datos.get("nombre"), "evento": evento_link}), 200
         else:
-            return jsonify({"mensaje": "Datos recibidos correctamente, pero ocurrió un error al crear el evento", "nombre": nombre}), 200
+            return jsonify({"mensaje": "Datos recibidos correctamente, pero ocurrió un error al crear el evento", "nombre": datos.get("nombre")}), 200
